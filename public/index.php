@@ -59,4 +59,6 @@ $app->get('/', function (Request $request, Response $response, $args) {
     return $response->withHeader("Content-Type", "application/json")->withStatus(200);
 });
 
+(require __DIR__ . '/../src/routes.php')($app);
+
 $app->run();
