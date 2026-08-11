@@ -6,7 +6,8 @@
         "slim/psr7": "^1.7",
         "illuminate/database": "^12.19",
         "cloudinary/cloudinary_php": "^3.1",
-        "phpmailer/phpmailer": "^7.0"
+        "phpmailer/phpmailer": "^7.0",
+        "mailchimp/transactional": "^1.4"
     },
     "autoload": {
         "psr-4": {
