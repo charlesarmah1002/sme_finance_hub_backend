@@ -7,11 +7,18 @@
         "illuminate/database": "^12.19",
         "cloudinary/cloudinary_php": "^3.1",
         "phpmailer/phpmailer": "^7.0",
-        "mailchimp/transactional": "^1.4"
+        "mailchimp/transactional": "^1.4",
+        "getbrevo/brevo-php": "^5.0",
+        "guzzlehttp/guzzle": "^7.15"
     },
     "autoload": {
         "psr-4": {
             "App\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
         }
     }
 }

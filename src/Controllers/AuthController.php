@@ -86,6 +86,16 @@ class AuthController
             $last_id = $user_account->id;
             // I will need the last id for the JWT 
 
+            $verification_url_encode = base64_encode($email);
+            $mailFunctions = new MailFunctions();
+            $mail_response = $mailFunctions->send_verification_email(
+                $email,
+                [
+                    "username" => $first_name,
+                    "confirm_url" => "http://localhost:8000/auth/verify_email/" . $verification_url_encode
+                ]
+            );
+
             $response->getBody()->write(json_encode([
                 "success" => true,
                 "message" => "User account created successfully"
@@ -100,13 +110,34 @@ class AuthController
         }
     }
 
-    public function verify_email(Request $request, Response $response)
+    public function verify_email(Request $request, Response $response, array $args)
     {
-        $mailFunctions = new MailFunctions();
-        $response->getBody()->write(
-            $mailFunctions->send_verification_email()
-        );
-        return $response;
+        $decoded_email = base64_decode($args['encoded_url']);
+
+        try {
+            $check_email_exists = $this->check_user_exists($decoded_email);
+
+            if ($check_email_exists['exists'] == false) {
+                throw new Exception("Email not verified. Contact customer support for further assistance");
+            }
+
+            UsersModel::where("email", "=", $decoded_email)
+                ->update([
+                    "email_verified" => "verified"
+                ]);
+
+            $response->getBody()->write(json_encode([
+                "success" => true,
+                "message" => "Email verification successful"
+            ]));
+            return $response->withHeader("Content-Type", "application/json");
+        } catch (Exception $e) {
+            $response->getBody()->write(json_encode([
+                "error" => true,
+                "message" => $e->getMessage()
+            ]));
+            return $response->withHeader("Content-Type", "application/json")->withStatus(400);
+        }
     }
 
     public function verify_user_account(Request $request, Response $response)
@@ -135,6 +166,21 @@ class AuthController
         }
 
         try {
+            $check_verified_status = $this->check_verified_status($email);
+
+            $mailFunctions = new MailFunctions();
+            $verification_url_encode = base64_encode($email);
+
+            if ($check_verified_status['verified'] == false) {
+                $mailFunctions->send_verification_email(
+                    $email,
+                    [
+                        "confirm_url" => "http://localhost:8000/auth/verify_email/" . $verification_url_encode
+                    ]
+                );
+                throw new Exception($check_verified_status['message']);
+            }
+
             $user_data = UsersModel::select(["email", "password"])->where("email", "=", $email)->first();
 
             if (!password_verify($password, $user_data['password'])) {
@@ -177,16 +223,89 @@ class AuthController
         }
     }
 
-    public function forgot_password(Request $request, Response $response)
+    private function check_verified_status(string $email)
     {
+        // check if the email is verified and return true or false
+        try {
+            $user_data = UsersModel::select([
+                "email",
+                "email_verified"
+            ])->where("email", "=", $email)->first();
 
+            if ($user_data == null) {
+                throw new Exception("User account does not exist");
+            }
+
+            if ($user_data["email_verified"] == "pending") {
+                throw new Exception("User email is not verified. Check your spam for verification email or contact customer support for further assistance");
+            }
+
+            return [
+                "verified" => true
+            ];
+        } catch (Exception $e) {
+            return [
+                "verified" => false,
+                "message" => $e->getMessage()
+            ];
+        }
     }
 
-    public function change_password(Request $request, Response $response) {
+    public function forgot_password(Request $request, Response $response)
+    {
+        //  I will have to work on this after I am done working on the email
+    }
+
+    public function update_password(Request $request, Response $response)
+    {
         $form_data = $request->getParsedBody();
 
         $email = $form_data['email'] ?? "";
         $password = $form_data['password'] ?? "";
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $response->getBody()->write(json_encode([
+                "error" => true,
+                "message" => "Enter a valid email address e.g. example@domain.com"
+            ]));
+            return $response->withHeader("Content-Type", "application/json")->withStatus(400);
+        }
+
+        if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/', $password)) {
+            $response->getBody()->write(json_encode([
+                "error" => true,
+                "message" => "Password should be at least 8 characters and, have an uppercase, lowercase, number, and special character"
+            ]));
+            return $response->withHeader("Content-Type", "application/json")->withStatus(400);
+        }
+
+        $check_user_exists = $this->check_user_exists($email);
+
+        if ($check_user_exists['exists'] == false) {
+            $response->getBody()->write(json_encode([
+                "error" => true,
+                "message" => "Sorry, user account does not exist. Register new account"
+            ]));
+            return $response->withHeader("Content-Type", "application/json")->withStatus(400);
+        }
+
+        try {
+            UsersModel::where("email", "=", $email)->update([
+                "password" => password_hash($password, PASSWORD_DEFAULT)
+            ]);
+
+            $response->getBody()->write(json_encode([
+                "success" => true,
+                "message" => "Password updated successfully"
+            ]));
+            return $response->withHeader("Content-Type", "application/json")->withStatus(200);
+        } catch (Exception $e) {
+            $response->getBody()->write(json_encode([
+                "error" => true,
+                "message" => $e->getMessage()
+            ]));
+            return $response->withHeader("Content-Type", "application/json")->withStatus(400);
+        }
     }
 
     // I need a function to send the verification email
