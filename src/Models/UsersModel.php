@@ -17,7 +17,7 @@ class UsersModel extends Model
         'password',
         'phone_number',
         'status',
-        'account_type',
+        'user_role_id',
         'email_verified'
     ];
 }

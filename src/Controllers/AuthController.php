@@ -23,8 +23,8 @@ class AuthController
         $email = $form_data['email'] ?? "";
         $password = $form_data['password'] ?? "";
         $phone_number = $form_data['phone_number'] ?? "";
-        $status = $form_data['status'] ?? "";
-        $account_type = $form_data['account_type'] ?? "";
+        $account_type = $form_data['user_role_id'] ?? "";
+        // I need to write a function that checks that the role exists
 
         if (
             !preg_match("/^[\p{L}\s'-]+$/u", $first_name) ||
@@ -63,16 +63,6 @@ class AuthController
             return $response->withHeader("Content-Type", "application/json")->withStatus(400);
         }
 
-        $account_types = ['admin', 'employee', 'owner'];
-
-        if (!in_array($account_type, $account_types, true)) {
-            $response->getBody()->write(json_encode([
-                "error" => true,
-                "message" => "Invalid account type selected. Contact support for assistance"
-            ]));
-            return $response->withHeader("Content-Type", "application/json")->withStatus(400);
-        }
-
         try {
             $user_account = UsersModel::create([
                 "name" => $first_name . " " . $last_name,
@@ -80,6 +70,7 @@ class AuthController
                 "password" => password_hash($password, PASSWORD_DEFAULT),
                 "phone_number" => $phone_number,
                 "status" => "active",
+                "user_role_id" => 1,
                 "account_type" => $account_type
             ]);
 
@@ -88,11 +79,11 @@ class AuthController
 
             $verification_url_encode = base64_encode($email);
             $mailFunctions = new MailFunctions();
-            $mail_response = $mailFunctions->send_verification_email(
+            $mailFunctions->send_verification_email(
                 $email,
                 [
                     "username" => $first_name,
-                    "confirm_url" => "http://localhost:8000/auth/verify_email/" . $verification_url_encode
+                    "confirm_url" => "http://localhost:5173/email-verification/" . $verification_url_encode
                 ]
             );
 
@@ -172,7 +163,7 @@ class AuthController
             $verification_url_encode = base64_encode($email);
 
             if ($check_verified_status['verified'] == false) {
-                $mailFunctions->send_verification_email(
+                 $mailFunctions->send_verification_email(
                     $email,
                     [
                         "confirm_url" => "http://localhost:8000/auth/verify_email/" . $verification_url_encode
