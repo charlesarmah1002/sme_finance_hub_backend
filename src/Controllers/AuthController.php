@@ -247,11 +247,6 @@ class AuthController
 
     public function forgot_password(Request $request, Response $response)
     {
-        //  I will have to work on this after I am done working on the email
-        // you send a request to reset your password
-        // I will take the users email address and then send them a token so I will have to create a database table that logs all the 
-        // reset tokens as well as the verification tokens
-
         $form_data = $request->getParsedBody();
         $email = $form_data['email'] ?? "";
 
@@ -275,7 +270,15 @@ class AuthController
 
         $token = bin2hex(random_bytes(32));
 
-        $mailFunctions = new MailFunctions();
+        $check_verified_status = $this->check_verified_status($email);
+
+        if ($check_verified_status['verified'] == false) {
+            $response->getBody()->write(json_encode([
+                "error" => true,
+                "message" => "User is not verified. Request for verification, if not possible seek customer support"
+            ]));
+            return $response->withHeader("Content-Type", "application/json")->withStatus(400);
+        }
 
         try {
             $user_data = UsersModel::select([
@@ -290,6 +293,7 @@ class AuthController
                 "expires_at" => $this->get_expiry_datetime(20)
             ]);
 
+            $mailFunctions = new MailFunctions();
             $mail_response = $mailFunctions->send_password_reset_email(
                 $email,
                 [
