@@ -1,6 +1,8 @@
-# SME Cash Flow & Bookkeeping System
+# SME Finance Hub - Backend API
 
 A comprehensive financial management and bookkeeping platform designed to help Small and Medium-sized Enterprises (SMEs) manage their **cash flow, income, expenses, sales, purchases, bookkeeping, accounting records, and financial performance** from a single system.
+
+**Backend Stack:** PHP | Slim Framework | Eloquent ORM | MySQL | Firebase JWT | PHPMailer
 
 ---
 
@@ -1160,6 +1162,439 @@ The accounting engine is the central source of financial truth.
 ---
 
 # 38. Main Database Entities
+
+---
+
+# 39. API Documentation
+
+## 39.1 Base URL
+
+```
+http://localhost:8000/api
+```
+
+## 39.2 Response Format
+
+All API responses are in JSON format with the following structure:
+
+### Success Response
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": {}
+}
+```
+
+### Error Response
+```json
+{
+  "error": true,
+  "message": "Error description"
+}
+```
+
+---
+
+## 39.3 Authentication Endpoints
+
+### 39.3.1 User Registration
+
+**Endpoint:** `POST /auth/register`
+
+**Description:** Create a new user account
+
+**Request Body:**
+```json
+{
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john@example.com",
+  "phone_number": "+233123456789",
+  "password": "SecurePass@123",
+  "user_role_id": 1
+}
+```
+
+**Validation Rules:**
+- First Name & Last Name: Must contain only letters, spaces, or hyphens
+- Email: Must be a valid email format (example@domain.com)
+- Password: Minimum 8 characters, must include:
+  - Uppercase letters (A-Z)
+  - Lowercase letters (a-z)
+  - Numbers (0-9)
+  - Special characters (@$!%*?&)
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "User account created successfully"
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "error": true,
+  "message": "Error message describing validation failure"
+}
+```
+
+**Possible Errors:**
+- Names should only contain letters, spaces, or hyphens
+- Enter a valid email address e.g. example@domain.com
+- Sorry, email taken by another user
+- Password should be at least 8 characters and have an uppercase, lowercase, number, and special character
+
+---
+
+### 39.3.2 Email Verification
+
+**Endpoint:** `GET /auth/verify_email/{encoded_url}`
+
+**Description:** Verify user email address
+
+**URL Parameters:**
+- `encoded_url` (string, required): Base64 encoded email address
+
+**Example:**
+```
+GET /auth/verify_email/am9obkBleGFtcGxlLmNvbQ==
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Email verification successful"
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "error": true,
+  "message": "Email not verified. Contact customer support for further assistance"
+}
+```
+
+---
+
+### 39.3.3 User Login
+
+**Endpoint:** `POST /auth/login`
+
+**Description:** Authenticate user and generate session
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com",
+  "password": "SecurePass@123"
+}
+```
+
+**Validation Rules:**
+- Email must be valid format
+- User account must exist
+- Email must be verified
+- Password must match stored password
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Login successful"
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "error": true,
+  "message": "Error message describing login failure"
+}
+```
+
+**Possible Errors:**
+- Enter a valid email address e.g. example@domain.com
+- Sorry, user account does not exist. Register new account
+- User email is not verified. Check your spam for verification email or contact customer support
+- Email and password are not a match
+
+---
+
+### 39.3.4 Forgot Password
+
+**Endpoint:** `POST /auth/forgot_password`
+
+**Description:** Request password reset token via email
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com"
+}
+```
+
+**Validation Rules:**
+- Email must be valid format
+- User account must exist
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "If an account exists for this email, a password reset link has been sent."
+}
+```
+
+**Note:** Response is same whether account exists or not for security reasons
+
+**Error Response (400):**
+```json
+{
+  "error": true,
+  "message": "User email is invalid. Email should be in the form example@domain.com"
+}
+```
+
+---
+
+### 39.3.5 Update Password
+
+**Endpoint:** `POST /auth/update_password`
+
+**Description:** Update user password after reset
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com",
+  "password": "NewSecurePass@123"
+}
+```
+
+**Validation Rules:**
+- Email must be valid format
+- User account must exist
+- Password must meet complexity requirements:
+  - Minimum 8 characters
+  - Uppercase, lowercase, number, and special character (@$!%*?&)
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Password updated successfully"
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "error": true,
+  "message": "Error message describing failure"
+}
+```
+
+**Possible Errors:**
+- Enter a valid email address e.g. example@domain.com
+- Sorry, user account does not exist. Register new account
+- Password should be at least 8 characters and have an uppercase, lowercase, number, and special character
+
+---
+
+## 39.4 CORS Support
+
+The API supports Cross-Origin Resource Sharing (CORS) for the following origins:
+
+- `http://localhost:5173` (Frontend Development)
+- `http://100.115.149.56:5173`
+- `http://10.195.128.9:5173`
+- `http://10.195.128.9`
+
+All requests from these origins are allowed with the following methods:
+- GET, POST, PUT, DELETE, OPTIONS
+
+---
+
+## 39.5 Status Codes
+
+| Status Code | Meaning |
+|-------------|---------|
+| 200 | OK - Request successful |
+| 400 | Bad Request - Validation or input error |
+| 401 | Unauthorized - Authentication required |
+| 403 | Forbidden - Access denied |
+| 404 | Not Found - Resource not found |
+| 500 | Internal Server Error |
+
+---
+
+# 40. Project Structure
+
+```
+sme_finance_hub_backend/
+├── src/
+│   ├── Controllers/
+│   │   └── AuthController.php          # Authentication logic
+│   ├── Models/
+│   │   ├── UsersModel.php             # User data model
+│   │   ├── UserRolesModel.php         # User roles model
+│   │   ├── AuthTokensModel.php        # Authentication tokens
+│   │   └── BusinessesModel.php        # Business data model
+│   ├── Routes/
+│   │   └── AuthRoute.php              # Authentication routes
+│   ├── Utilities/
+│   │   ├── MailFunctions.php          # Email sending utilities
+│   │   └── JWTFirebase.php            # JWT token management
+│   ├── database.php                   # Database configuration
+│   └── routes.php                     # Route registration
+├── public/
+│   └── index.php                      # Application entry point
+├── docker/
+│   ├── nginx/
+│   │   └── default.conf               # Nginx configuration
+│   └── php/
+│       └── php.ini                    # PHP configuration
+├── docker-compose.yml                 # Docker compose setup
+├── Dockerfile                         # Docker image definition
+├── Makefile                           # Make commands
+├── composer.json                      # PHP dependencies
+└── README.md                          # Project documentation
+```
+
+---
+
+# 41. Environment Variables
+
+Create a `.env` file in the project root with the following variables:
+
+```env
+# Database Configuration
+DB_DRIVER=mysql
+DB_HOST=db
+DB_PORT=3306
+DB_NAME=sme_finance_hub
+DB_USERNAME=root
+DB_PASSWORD=password
+DB_CHARSET=utf8mb4
+DB_COLLATION=utf8mb4_unicode_ci
+
+# SMTP Configuration (Email)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+MAIL_FROM=noreply@smefinancehub.com
+MAIL_FROM_NAME=SME Finance Hub
+MAIL_REPLY_TO=support@smefinancehub.com
+
+# JWT Configuration
+JWT_SECRET_KEY=your-secret-key-here-change-in-production
+```
+
+---
+
+# 42. Getting Started
+
+### Prerequisites
+- PHP 8.0 or higher
+- MySQL 5.7 or higher
+- Composer
+- Docker & Docker Compose (optional)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd sme_finance_hub_backend
+   ```
+
+2. **Install dependencies**
+   ```bash
+   composer install
+   ```
+
+3. **Create .env file**
+   ```bash
+   cp .env.example .env
+   ```
+
+4. **Run database migrations** (when ready)
+   ```bash
+   php bin/migrate
+   ```
+
+5. **Start the application**
+   ```bash
+   php -S localhost:8000 -t public
+   ```
+
+### Running with Docker
+
+```bash
+docker-compose up -d
+```
+
+Access the API at: `http://localhost:8000`
+
+---
+
+# 43. Development Guidelines
+
+## Code Standards
+- Follow PSR-12 coding standards
+- Use type hints in function declarations
+- Document public methods with PHPDoc comments
+- Keep methods focused and single-responsibility
+
+## Security
+- All user inputs must be validated
+- Passwords are hashed using PASSWORD_DEFAULT
+- Environment variables store sensitive data
+- CSRF protection via token validation (when implemented)
+
+## Email Templates
+Email templates are located in `src/Templates/emails/`. Current templates:
+- `verification.php` - Email verification template
+- `password-reset.php` - Password reset template
+
+---
+
+# 44. Upcoming Features
+
+### Short Term
+- [ ] Business profile management
+- [ ] User role and permission management
+- [ ] Multi-user support per business
+- [ ] JWT token-based authentication
+- [ ] Account/Chart of Accounts management
+
+### Medium Term
+- [ ] Transaction recording (income/expenses)
+- [ ] Invoice management
+- [ ] Customer and supplier management
+- [ ] Bank account management
+- [ ] Financial reporting
+
+### Long Term
+- [ ] Double-entry bookkeeping engine
+- [ ] Advanced financial analysis
+- [ ] Forecasting capabilities
+- [ ] Mobile application
+- [ ] Advanced reporting dashboard
+
+---
+
+# 45. Support & Contribution
+
+For issues, feature requests, or contributions, please contact the development team or submit a GitHub issue.
+
+**Last Updated:** August 14, 2026
 
 The initial complete database consists of approximately 40+ core tables covering:
 

@@ -86,7 +86,7 @@ class AuthController
                 $email,
                 [
                     "name" => $first_name,
-                    "confirm_url" => "http://localhost:5173/email-verification/" . $verification_url_encode
+                    "confirm_url" => $_ENV['FRONTEND_BASE_URL'] . "/email-verification/" . $verification_url_encode
                 ]
             );
 
@@ -297,7 +297,7 @@ class AuthController
             $mail_response = $mailFunctions->send_password_reset_email(
                 $email,
                 [
-                    "reset_url" => "http://localhost:5173/reset-password/" . $token
+                    "reset_url" => $_ENV['FRONTEND_BASE_URL'] . "/reset-password/" . $token
                 ]
             );
 
@@ -351,9 +351,24 @@ class AuthController
         if ($check_user_exists['exists'] == false) {
             $response->getBody()->write(json_encode([
                 "error" => true,
-                "message" => "Sorry, user account does not exist. Register new account"
+                "message" => "Unknown error, contact customer support for assistance."
             ]));
             return $response->withHeader("Content-Type", "application/json")->withStatus(400);
+        }
+
+        $check_verified_status = $this->check_verified_status($email);
+
+        $mailFunctions = new MailFunctions();
+        $verification_url_encode = base64_encode($email);
+
+        if ($check_verified_status['verified'] == false) {
+            $mailFunctions->send_verification_email(
+                $email,
+                [
+                    "confirm_url" => $_ENV['FRONTEND_BASE_URL'] . "/auth/verify_email/" . $verification_url_encode
+                ]
+            );
+            throw new Exception($check_verified_status['message']);
         }
 
         try {
@@ -375,5 +390,6 @@ class AuthController
         }
     }
 
-    // I need a function to send the verification email
+    // write a function to confirm password reset request
+    // i will have to add a function to change email addresses if possible
 }
