@@ -11,139 +11,139 @@ class MailFunctions
 {
 
 
-    /**
-     * Send an email verification email.
-     *
-     * Expected $content structure:
-     *
-     * [
-     *     'confirm_url' => 'https://example.com/verify-email?token=...',
-     *     'name'        => 'John Doe',
-     *     'subject'     => 'Confirm your email address'
-     * ]
-     *
-     * @param string $email
-     * @param array<string, mixed> $content
-     *
-     * @return array{success: bool, message: string}
-     */
-    public function send_verification_email(
-        string $email,
-        array $content
-    ): array {
-        $mail = new PHPMailer(true);
+  /**
+   * Send an email verification email.
+   *
+   * Expected $content structure:
+   *
+   * [
+   *     'confirm_url' => 'https://example.com/verify-email?token=...',
+   *     'name'        => 'John Doe',
+   *     'subject'     => 'Confirm your email address'
+   * ]
+   *
+   * @param string $email
+   * @param array<string, mixed> $content
+   *
+   * @return array{success: bool, message: string}
+   */
+  public function send_verification_email(
+    string $email,
+    array $content
+  ): array {
+    $mail = new PHPMailer(true);
 
-        try {
-            /*
-             * ------------------------------------------------------------
-             * Validate required configuration
-             * ------------------------------------------------------------
-             */
+    try {
+      /*
+       * ------------------------------------------------------------
+       * Validate required configuration
+       * ------------------------------------------------------------
+       */
 
-            $requiredEnv = [
-                'SMTP_USERNAME',
-                'SMTP_PASSWORD',
-                'MAIL_FROM',
-                'MAIL_FROM_NAME',
-            ];
+      $requiredEnv = [
+        'SMTP_USERNAME',
+        'SMTP_PASSWORD',
+        'MAIL_FROM',
+        'MAIL_FROM_NAME',
+      ];
 
-            foreach ($requiredEnv as $envKey) {
-                if (empty($_ENV[$envKey])) {
-                    throw new Exception(
-                        "Missing environment variable: {$envKey}"
-                    );
-                }
-            }
+      foreach ($requiredEnv as $envKey) {
+        if (empty($_ENV[$envKey])) {
+          throw new Exception(
+            "Missing environment variable: {$envKey}"
+          );
+        }
+      }
 
-            /*
-             * ------------------------------------------------------------
-             * Get email content
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * Get email content
+       * ------------------------------------------------------------
+       */
 
-            $confirmUrl = (string) ($content['confirm_url'] ?? '');
+      $confirmUrl = (string) ($content['confirm_url'] ?? '');
 
-            if ($confirmUrl === '') {
-                throw new Exception(
-                    json_encode($content['confirm_url'])
-                );
-            }
+      if ($confirmUrl === '') {
+        throw new Exception(
+          json_encode($content['confirm_url'])
+        );
+      }
 
-            $userName = (string) ($content['name'] ?? 'there');
+      $userName = (string) ($content['name'] ?? 'there');
 
-            $subject = (string) (
-                $content['subject']
-                ?? 'Confirm your email address'
-            );
+      $subject = (string) (
+        $content['subject']
+        ?? 'Confirm your email address'
+      );
 
-            /*
-             * Escape values before placing them inside HTML.
-             */
-            $safeName = htmlspecialchars(
-                $userName,
-                ENT_QUOTES | ENT_SUBSTITUTE,
-                'UTF-8'
-            );
+      /*
+       * Escape values before placing them inside HTML.
+       */
+      $safeName = htmlspecialchars(
+        $userName,
+        ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8'
+      );
 
-            $safeConfirmUrl = htmlspecialchars(
-                $confirmUrl,
-                ENT_QUOTES | ENT_SUBSTITUTE,
-                'UTF-8'
-            );
+      $safeConfirmUrl = htmlspecialchars(
+        $confirmUrl,
+        ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8'
+      );
 
-            /*
-             * ------------------------------------------------------------
-             * SMTP configuration
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * SMTP configuration
+       * ------------------------------------------------------------
+       */
 
-            $mail->isSMTP();
+      $mail->isSMTP();
 
-            $mail->Host = $_ENV['SMTP_HOST'] ?? 'mail.smtp2go.com';
-            $mail->SMTPAuth = true;
+      $mail->Host = $_ENV['SMTP_HOST'] ?? 'mail.smtp2go.com';
+      $mail->SMTPAuth = true;
 
-            $mail->Username = $_ENV['SMTP_USERNAME'];
-            $mail->Password = $_ENV['SMTP_PASSWORD'];
+      $mail->Username = $_ENV['SMTP_USERNAME'];
+      $mail->Password = $_ENV['SMTP_PASSWORD'];
 
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = (int) ($_ENV['SMTP_PORT'] ?? 587);
+      $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+      $mail->Port = (int) ($_ENV['SMTP_PORT'] ?? 587);
 
-            /*
-             * ------------------------------------------------------------
-             * Sender
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * Sender
+       * ------------------------------------------------------------
+       */
 
-            $mail->setFrom(
-                $_ENV['MAIL_FROM'],
-                $_ENV['MAIL_FROM_NAME']
-            );
+      $mail->setFrom(
+        $_ENV['MAIL_FROM'],
+        $_ENV['MAIL_FROM_NAME']
+      );
 
-            /*
-             * ------------------------------------------------------------
-             * Recipient
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * Recipient
+       * ------------------------------------------------------------
+       */
 
-            $mail->addAddress($email);
+      $mail->addAddress($email);
 
-            /*
-             * Optional Reply-To
-             */
-            if (!empty($_ENV['MAIL_REPLY_TO'])) {
-                $mail->addReplyTo(
-                    $_ENV['MAIL_REPLY_TO'],
-                    $_ENV['MAIL_FROM_NAME']
-                );
-            }
+      /*
+       * Optional Reply-To
+       */
+      if (!empty($_ENV['MAIL_REPLY_TO'])) {
+        $mail->addReplyTo(
+          $_ENV['MAIL_REPLY_TO'],
+          $_ENV['MAIL_FROM_NAME']
+        );
+      }
 
-            /*
-             * ------------------------------------------------------------
-             * Email body
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * Email body
+       * ------------------------------------------------------------
+       */
 
-            $body = <<<HTML
+      $body = <<<HTML
 <!DOCTYPE html>
 <html
     lang="en"
@@ -393,174 +393,174 @@ class MailFunctions
 </html>
 HTML;
 
-            /*
-             * ------------------------------------------------------------
-             * Configure email content
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * Configure email content
+       * ------------------------------------------------------------
+       */
 
-            $mail->isHTML(true);
+      $mail->isHTML(true);
 
-            $mail->CharSet = 'UTF-8';
+      $mail->CharSet = 'UTF-8';
 
-            $mail->Subject = $subject;
+      $mail->Subject = $subject;
 
-            $mail->Body = $body;
+      $mail->Body = $body;
 
-            /*
-             * Plain-text fallback for email clients
-             * that don't support HTML.
-             */
-            $mail->AltBody = sprintf(
-                "Hello %s,\n\n" .
-                "Please confirm your email address by visiting " .
-                "the following link:\n\n%s\n\n" .
-                "If you did not create this account, " .
-                "you can safely ignore this email.",
-                $userName,
-                $confirmUrl
-            );
+      /*
+       * Plain-text fallback for email clients
+       * that don't support HTML.
+       */
+      $mail->AltBody = sprintf(
+        "Hello %s,\n\n" .
+        "Please confirm your email address by visiting " .
+        "the following link:\n\n%s\n\n" .
+        "If you did not create this account, " .
+        "you can safely ignore this email.",
+        $userName,
+        $confirmUrl
+      );
 
-            /*
-             * ------------------------------------------------------------
-             * Send email
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * Send email
+       * ------------------------------------------------------------
+       */
 
-            $mail->send();
+      $mail->send();
 
-            return [
-                'success' => true,
-                'message' => 'Email sent successfully',
-            ];
+      return [
+        'success' => true,
+        'message' => 'Email sent successfully',
+      ];
 
-        } catch (Exception $e) {
+    } catch (Exception $e) {
 
-            return [
-                'success' => false,
-                'message' => $mail->ErrorInfo !== ''
-                    ? $mail->ErrorInfo
-                    : $e->getMessage(),
-            ];
-        }
+      return [
+        'success' => false,
+        'message' => $mail->ErrorInfo !== ''
+          ? $mail->ErrorInfo
+          : $e->getMessage(),
+      ];
     }
-    public function send_password_reset_email(
-        string $email,
-        array $content
-    ): array {
-        $mail = new PHPMailer(true);
+  }
+  public function send_password_reset_email(
+    string $email,
+    array $content
+  ): array {
+    $mail = new PHPMailer(true);
 
-        try {
-            /*
-             * ------------------------------------------------------------
-             * Validate required configuration
-             * ------------------------------------------------------------
-             */
+    try {
+      /*
+       * ------------------------------------------------------------
+       * Validate required configuration
+       * ------------------------------------------------------------
+       */
 
-            $requiredEnv = [
-                'SMTP_USERNAME',
-                'SMTP_PASSWORD',
-                'MAIL_FROM',
-                'MAIL_FROM_NAME',
-            ];
+      $requiredEnv = [
+        'SMTP_USERNAME',
+        'SMTP_PASSWORD',
+        'MAIL_FROM',
+        'MAIL_FROM_NAME',
+      ];
 
-            foreach ($requiredEnv as $envKey) {
-                if (empty($_ENV[$envKey])) {
-                    throw new Exception(
-                        "Missing environment variable: {$envKey}"
-                    );
-                }
-            }
+      foreach ($requiredEnv as $envKey) {
+        if (empty($_ENV[$envKey])) {
+          throw new Exception(
+            "Missing environment variable: {$envKey}"
+          );
+        }
+      }
 
-            /*
-             * ------------------------------------------------------------
-             * Get email content
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * Get email content
+       * ------------------------------------------------------------
+       */
 
-            $confirmUrl = (string) ($content['reset_url'] ?? '');
+      $reset_url = (string) ($content['reset_url'] ?? '');
 
-            if ($confirmUrl === '') {
-                throw new Exception(
-                    json_encode($content['reset_url'])
-                );
-            }
+      if ($reset_url === '') {
+        throw new Exception(
+          'Missing required content key: reset_url'
+        );
+      }
 
-            $userName = (string) ($content['name'] ?? 'there');
+      $userName = (string) ($content['name'] ?? 'there');
 
-            $subject = (string) (
-                $content['subject']
-                ?? 'Reset your password'
-            );
+      $subject = (string) (
+        $content['subject']
+        ?? 'Reset your password'
+      );
 
-            /*
-             * Escape values before placing them inside HTML.
-             */
-            $safeName = htmlspecialchars(
-                $userName,
-                ENT_QUOTES | ENT_SUBSTITUTE,
-                'UTF-8'
-            );
+      /*
+       * Escape values before placing them inside HTML.
+       */
+      $safeName = htmlspecialchars(
+        $userName,
+        ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8'
+      );
 
-            $safeConfirmUrl = htmlspecialchars(
-                $confirmUrl,
-                ENT_QUOTES | ENT_SUBSTITUTE,
-                'UTF-8'
-            );
+      $safeResetUrl = htmlspecialchars(
+        $reset_url,
+        ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8'
+      );
 
-            /*
-             * ------------------------------------------------------------
-             * SMTP configuration
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * SMTP configuration
+       * ------------------------------------------------------------
+       */
 
-            $mail->isSMTP();
+      $mail->isSMTP();
 
-            $mail->Host = $_ENV['SMTP_HOST'] ?? 'mail.smtp2go.com';
-            $mail->SMTPAuth = true;
+      $mail->Host = $_ENV['SMTP_HOST'] ?? 'mail.smtp2go.com';
+      $mail->SMTPAuth = true;
 
-            $mail->Username = $_ENV['SMTP_USERNAME'];
-            $mail->Password = $_ENV['SMTP_PASSWORD'];
+      $mail->Username = $_ENV['SMTP_USERNAME'];
+      $mail->Password = $_ENV['SMTP_PASSWORD'];
 
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = (int) ($_ENV['SMTP_PORT'] ?? 587);
+      $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+      $mail->Port = (int) ($_ENV['SMTP_PORT'] ?? 587);
 
-            /*
-             * ------------------------------------------------------------
-             * Sender
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * Sender
+       * ------------------------------------------------------------
+       */
 
-            $mail->setFrom(
-                $_ENV['MAIL_FROM'],
-                $_ENV['MAIL_FROM_NAME']
-            );
+      $mail->setFrom(
+        $_ENV['MAIL_FROM'],
+        $_ENV['MAIL_FROM_NAME']
+      );
 
-            /*
-             * ------------------------------------------------------------
-             * Recipient
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * Recipient
+       * ------------------------------------------------------------
+       */
 
-            $mail->addAddress($email);
+      $mail->addAddress($email);
 
-            /*
-             * Optional Reply-To
-             */
-            if (!empty($_ENV['MAIL_REPLY_TO'])) {
-                $mail->addReplyTo(
-                    $_ENV['MAIL_REPLY_TO'],
-                    $_ENV['MAIL_FROM_NAME']
-                );
-            }
+      /*
+       * Optional Reply-To
+       */
+      if (!empty($_ENV['MAIL_REPLY_TO'])) {
+        $mail->addReplyTo(
+          $_ENV['MAIL_REPLY_TO'],
+          $_ENV['MAIL_FROM_NAME']
+        );
+      }
 
-            /*
-             * ------------------------------------------------------------
-             * Email body
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * Email body
+       * ------------------------------------------------------------
+       */
 
-            $body = <<<HTML
+      $body = <<<HTML
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 
@@ -625,7 +625,7 @@ HTML;
       margin: 1em 0;
       text-align: left;
     }
-    
+
     td.template-email-button table {
       margin: 0 58px;
     }
@@ -748,7 +748,7 @@ HTML;
                     </h1>
                     <p class="template-email-text" style="mso-line-height: exactly; line-height: 25px;">
                       <!--[if mso]><span style="font-family: sans-serif;"><![endif]-->
-                      Please reset your account password by clicking the link below.
+                      Hi {$safeName}, please reset your account password by clicking the link below.
                       <!--[if mso]></span><![endif]-->
                     </p>
                   </td>
@@ -760,10 +760,10 @@ HTML;
                         <td cellpadding="0" style="padding: 0;">
                           <div>
                             <!--[if mso]>
-                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ reset_url }}" style="height:36px;v-text-anchor:middle;width:240px;" arcsize="10%" stroke="f" fillcolor="#32a0e8">
+                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{$safeResetUrl}" style="height:36px;v-text-anchor:middle;width:240px;" arcsize="10%" stroke="f" fillcolor="#32a0e8">
                             <w:anchorlock/>
                             <center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:bold;">
-                              Confirm Email Address
+                              Reset Password
                             </center>
                           </v:roundrect>
                           <![endif]-->
@@ -773,7 +773,7 @@ HTML;
                                 <td align="center" width="240" height="36" bgcolor="#32a0e8"
                                   style="-webkit-border-radius: 5px; -moz-border-radius: 5px; border-radius: 5px; color: #ffffff; display: block;box-shadow: 0px 0px 0px 1px #121212;"
                                   class="template-button-container">
-                                  <a href="{{ reset_url }}" class="template-email-blue-action-button"
+                                  <a href="{$safeResetUrl}" class="template-email-blue-action-button"
                                     style="font-size:16px; font-weight: 600; font-family: 'Open Sans', Helvetica, Arial, sans-serif; text-decoration: none; line-height:36px; width:100%; letter-spacing: -0.22px;display:inline-block">
                                     <span style="color: #ffffff; padding-left: 10px; padding-right: 10px;">
                                       Reset Password
@@ -807,8 +807,8 @@ HTML;
                     </p>
                     <p class="template-email-text" style="mso-line-height: exactly; line-height: 25px;">
                       <!--[if mso]><span style="font-family: sans-serif;"><![endif]-->
-                      It’s sent to our customers who subscribed to emails regarding our services. Feel free to discard
-                      this email if you didn’t enroll for any product or service regarding our company.
+                      It's sent to customers who requested a password reset for their account. Feel free to discard
+                      this email if you didn't request a password change.
                       <!--[if mso]></span><![endif]-->
                     </p>
                   </td>
@@ -843,55 +843,55 @@ HTML;
 </html>
 HTML;
 
-            /*
-             * ------------------------------------------------------------
-             * Configure email content
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * Configure email content
+       * ------------------------------------------------------------
+       */
 
-            $mail->isHTML(true);
+      $mail->isHTML(true);
 
-            $mail->CharSet = 'UTF-8';
+      $mail->CharSet = 'UTF-8';
 
-            $mail->Subject = $subject;
+      $mail->Subject = $subject;
 
-            $mail->Body = $body;
+      $mail->Body = $body;
 
-            /*
-             * Plain-text fallback for email clients
-             * that don't support HTML.
-             */
-            $mail->AltBody = sprintf(
-                "Hello %s,\n\n" .
-                "Please confirm your email address by visiting " .
-                "the following link:\n\n%s\n\n" .
-                "If you did not create this account, " .
-                "you can safely ignore this email.",
-                $userName,
-                $confirmUrl
-            );
+      /*
+       * Plain-text fallback for email clients
+       * that don't support HTML.
+       */
+      $mail->AltBody = sprintf(
+        "Hello %s,\n\n" .
+        "Please reset your password by visiting " .
+        "the following link:\n\n%s\n\n" .
+        "If you did not request this, " .
+        "you can safely ignore this email.",
+        $userName,
+        $reset_url
+      );
 
-            /*
-             * ------------------------------------------------------------
-             * Send email
-             * ------------------------------------------------------------
-             */
+      /*
+       * ------------------------------------------------------------
+       * Send email
+       * ------------------------------------------------------------
+       */
 
-            $mail->send();
+      $mail->send();
 
-            return [
-                'success' => true,
-                'message' => 'Email sent successfully',
-            ];
+      return [
+        'success' => true,
+        'message' => 'Email sent successfully',
+      ];
 
-        } catch (Exception $e) {
+    } catch (Exception $e) {
 
-            return [
-                'success' => false,
-                'message' => $mail->ErrorInfo !== ''
-                    ? $mail->ErrorInfo
-                    : $e->getMessage(),
-            ];
-        }
+      return [
+        'success' => false,
+        'message' => $mail->ErrorInfo !== ''
+          ? $mail->ErrorInfo
+          : $e->getMessage(),
+      ];
     }
+  }
 }
