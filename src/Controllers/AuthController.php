@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\UsersModel;
-use PHPMailer\PHPMailer\PHPMailer;
+use App\Models\AuthTokensModel;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Utilities\MailFunctions;
+use DateInterval;
+use DateTime;
 use Exception;
+use InvalidArgumentException;
 
 class AuthController
 {
@@ -82,7 +85,7 @@ class AuthController
             $mailFunctions->send_verification_email(
                 $email,
                 [
-                    "username" => $first_name,
+                    "name" => $first_name,
                     "confirm_url" => "http://localhost:5173/email-verification/" . $verification_url_encode
                 ]
             );
@@ -163,7 +166,7 @@ class AuthController
             $verification_url_encode = base64_encode($email);
 
             if ($check_verified_status['verified'] == false) {
-                 $mailFunctions->send_verification_email(
+                $mailFunctions->send_verification_email(
                     $email,
                     [
                         "confirm_url" => "http://localhost:8000/auth/verify_email/" . $verification_url_encode
@@ -245,6 +248,75 @@ class AuthController
     public function forgot_password(Request $request, Response $response)
     {
         //  I will have to work on this after I am done working on the email
+        // you send a request to reset your password
+        // I will take the users email address and then send them a token so I will have to create a database table that logs all the 
+        // reset tokens as well as the verification tokens
+
+        $form_data = $request->getParsedBody();
+        $email = $form_data['email'] ?? "";
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $response->getBody()->write(json_encode([
+                "error" => true,
+                "message" => "User email is invalid. Email should be in the form example@domain.com"
+            ]));
+            return $response->withHeader("Content-Type", "application/json")->withStatus(400);
+        }
+
+        $check_user_exists = $this->check_user_exists($email);
+
+        if ($check_user_exists['exists'] == false) {
+            $response->getBody()->write(json_encode([
+                "error" => true,
+                "message" => "If an account exists for this email, a password reset link has been sent."
+            ]));
+            return $response->withHeader("Content-Type", "application/json")->withStatus(400);
+        }
+
+        $token = bin2hex(random_bytes(32));
+
+        $mailFunctions = new MailFunctions();
+
+        try {
+            $user_data = UsersModel::select([
+                "id",
+                "email",
+            ])->where("email", "=", $email)->first();
+
+            AuthTokensModel::create([
+                "user_id" => $user_data['id'],
+                "token_hash" => hash('sha256', $token),
+                "type" => "password_reset",
+                "expires_at" => $this->get_expiry_datetime(20)
+            ]);
+
+            $mail_response = $mailFunctions->send_password_reset_email(
+                $email,
+                [
+                    "reset_url" => "http://localhost:5173/reset-password/" . $token
+                ]
+            );
+
+            $response->getBody()->write(json_encode([$mail_response]));
+            return $response->withHeader("Content-Type", "application/json");
+        } catch (Exception $e) {
+            $response->getBody()->write(json_encode([
+                "error" => true,
+                "message" => $e->getMessage()
+            ]));
+            return $response->withHeader("Content-Type", "application/json")->withStatus(400);
+        }
+    }
+
+    function get_expiry_datetime(int $minutes, string $format = "Y-m-d H:i:s"): string
+    {
+        if ($minutes < 1) {
+            throw new InvalidArgumentException("Expiry minutes must be a positive integer.");
+        }
+
+        return (new DateTime())
+            ->add(new DateInterval("PT{$minutes}M"))
+            ->format($format);
     }
 
     public function update_password(Request $request, Response $response)
