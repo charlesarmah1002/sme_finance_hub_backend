@@ -8,15 +8,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class BusinessesModel extends Model
 {
-    protected $table = 'businesses';
+    protected $table = 'business';
 
     protected $fillable = [
-        'user_id',
-        'business_name',
-        'business_type',
-        'registration_number',
-        'status',
-        'created_at',
-        'updated_at'
+        'name',
+        'logo',
+        'phone',
+        'email',
+        'address',
+        'country',
+        'currency',
+        'fiscal_year_start',
+        'status'
     ];
 }
